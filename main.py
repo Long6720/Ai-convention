@@ -9,7 +9,7 @@ load_dotenv()
 # Configuration
 API_KEY = os.getenv("OPENAI_API_KEY")
 BASE_URL = os.getenv("OPENAI_BASE_URL", "https://aiportalapi.stu-platform.live/use")
-MODEL = "GPT-4.1"
+MODEL = os.getenv("MODEL_AI")
 TEMPERATURE = 0.2
 
 # Initialize OpenAI client
