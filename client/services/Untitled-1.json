@@ -1,0 +1,464 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AI Code Review Agent",
+    "description": "An intelligent code review agent built with Python and LangGraph",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Root endpoint with API information.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": { "type": "string" },
+                  "type": "object",
+                  "title": "Response Root  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthCheckResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/code": {
+      "post": {
+        "summary": "Review Code",
+        "description": "Review a code snippet.\n\nArgs:\n    request: Code review request containing code and optional language\n    \nReturns:\n    Code review results",
+        "operationId": "review_code_review_code_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CodeReviewRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CodeReviewResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/pr": {
+      "post": {
+        "summary": "Review Github Pr",
+        "description": "Review a GitHub pull request.\n\nArgs:\n    request: GitHub PR review request containing PR URL\n    \nReturns:\n    Code review results",
+        "operationId": "review_github_pr_review_pr_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GitHubPRRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CodeReviewResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review/upload": {
+      "post": {
+        "summary": "Review Uploaded File",
+        "description": "Review code from an uploaded file.\n\nArgs:\n    file: Code file to upload\n    language: Optional programming language\n    \nReturns:\n    Code review results",
+        "operationId": "review_uploaded_file_review_upload_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_review_uploaded_file_review_upload_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CodeReviewResponse" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/upload": {
+      "post": {
+        "summary": "Upload Custom Rule",
+        "description": "Upload a custom review rule.\n\nArgs:\n    request: Custom rule request\n    \nReturns:\n    Rule ID",
+        "operationId": "upload_custom_rule_rules_upload_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CustomRuleRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": { "type": "string" },
+                  "type": "object",
+                  "title": "Response Upload Custom Rule Rules Upload Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules": {
+      "get": {
+        "summary": "Get Rules",
+        "description": "Get available review rules.\n\nArgs:\n    language: Optional filter by programming language\n    \nReturns:\n    List of available rules",
+        "operationId": "get_rules_rules_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/RuleResponse" },
+                  "title": "Response Get Rules Rules Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rules/statistics": {
+      "get": {
+        "summary": "Get Rules Statistics",
+        "description": "Get statistics about available rules.\n\nReturns:\n    Rules statistics",
+        "operationId": "get_rules_statistics_rules_statistics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Get Rules Statistics Rules Statistics Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/languages": {
+      "get": {
+        "summary": "Get Supported Languages",
+        "description": "Get list of supported programming languages.\n\nReturns:\n    List of supported languages",
+        "operationId": "get_supported_languages_languages_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "type": "string" },
+                  "type": "array",
+                  "title": "Response Get Supported Languages Languages Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test": {
+      "post": {
+        "summary": "Test Agent",
+        "description": "Test the agent components.\n\nReturns:\n    Component test results",
+        "operationId": "test_agent_test_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          }
+        }
+      }
+    },
+    "/evaluate": {
+      "post": {
+        "summary": "Evaluate Code Detailed",
+        "description": "Evaluate code and provide detailed analysis in JSON format.\n\nArgs:\n    request: Code evaluation request containing code and optional language\n    \nReturns:\n    Detailed evaluation results with recommendations and metrics",
+        "operationId": "evaluate_code_detailed_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CodeReviewRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Evaluate Code Detailed Evaluate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_review_uploaded_file_review_upload_post": {
+        "properties": {
+          "file": { "type": "string", "format": "binary", "title": "File" },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": ["file"],
+        "title": "Body_review_uploaded_file_review_upload_post"
+      },
+      "CodeReviewRequest": {
+        "properties": {
+          "code": { "type": "string", "title": "Code" },
+          "language": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": ["code"],
+        "title": "CodeReviewRequest"
+      },
+      "CodeReviewResponse": {
+        "properties": {
+          "success": { "type": "boolean", "title": "Success" },
+          "error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error"
+          },
+          "response": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Response"
+          },
+          "metadata": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Metadata"
+          },
+          "fixed_code": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Fixed Code"
+          },
+          "fixes_applied": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Fixes Applied"
+          }
+        },
+        "type": "object",
+        "required": ["success"],
+        "title": "CodeReviewResponse"
+      },
+      "CustomRuleRequest": {
+        "properties": {
+          "title": { "type": "string", "title": "Title" },
+          "content": { "type": "string", "title": "Content" },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "general"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "default": "general"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "default": "medium"
+          }
+        },
+        "type": "object",
+        "required": ["title", "content"],
+        "title": "CustomRuleRequest"
+      },
+      "GitHubPRRequest": {
+        "properties": {
+          "pr_url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Pr Url"
+          }
+        },
+        "type": "object",
+        "required": ["pr_url"],
+        "title": "GitHubPRRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthCheckResponse": {
+        "properties": {
+          "status": { "type": "string", "title": "Status" },
+          "components": {
+            "additionalProperties": { "type": "boolean" },
+            "type": "object",
+            "title": "Components"
+          },
+          "message": { "type": "string", "title": "Message" }
+        },
+        "type": "object",
+        "required": ["status", "components", "message"],
+        "title": "HealthCheckResponse"
+      },
+      "RuleResponse": {
+        "properties": {
+          "title": { "type": "string", "title": "Title" },
+          "content": { "type": "string", "title": "Content" },
+          "language": { "type": "string", "title": "Language" },
+          "category": { "type": "string", "title": "Category" },
+          "severity": { "type": "string", "title": "Severity" }
+        },
+        "type": "object",
+        "required": ["title", "content", "language", "category", "severity"],
+        "title": "RuleResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
