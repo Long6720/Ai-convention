@@ -36,44 +36,20 @@ def test_upload_rules():
     """Test uploading coding rules"""
     print("📝 Testing Rule Upload...")
     
-    rules_text = """
-    # JavaScript Coding Standards
-    
-    ## Naming Conventions
-    - Use camelCase for variables and functions
-    - Use PascalCase for classes and constructors
-    - Use UPPER_SNAKE_CASE for constants
-    
-    ## Code Structure
-    - Use 2 spaces for indentation
-    - Use semicolons at the end of statements
-    - Use const and let instead of var
-    - Prefer arrow functions for callbacks
-    
-    ## Best Practices
-    - Always use strict mode ('use strict')
-    - Handle promises properly with .catch()
-    - Use template literals instead of string concatenation
-    - Avoid global variables
-    - Use meaningful variable names
-    
-    ## Security
-    - Never use eval() or Function constructor
-    - Validate and sanitize user inputs
-    - Use HTTPS in production
-    - Implement proper authentication
-    """
-    
+    with open("react_coding_standards.md", "r") as file:
+        rules_text = file.read()
+
     data = {
         'rules_text': rules_text,
-        'rule_name': 'JavaScript Standards',
-        'description': 'JavaScript coding standards and best practices'
+        'rule_name': 'React JavaScript & TypeScript Standards',
+        'description': 'React coding standards and best practices for JavaScript and TypeScript projects'
     }
     
     response = requests.post(f"{API_BASE}/rules/upload", data=data)
     print_response(response, "Rule Upload Response")
     
     return response.status_code == 200
+
 
 def test_review_code():
     """Test code review functionality"""
