@@ -18,8 +18,6 @@ class CodeReviewRequest(BaseModel):
 
 class GitHubPRRequest(BaseModel):
     pr_url: str
-    repository: str
-    branch: str
 
 class CodeReviewResponse(BaseModel):
     success: bool
@@ -34,6 +32,40 @@ class CodeReviewResponse(BaseModel):
     total_issues: int
     critical_count: int
     warning_count: int
+
+class FileReview(BaseModel):
+    filename: str
+    language: str
+    status: str
+    review_results: List[ReviewRule]
+    positive_aspects: List[str] = []
+    recommendations: List[str] = []
+    overall_assessment: Dict[str, Any] = {}
+    summary: str
+    language_detected: str
+    overall_score: int
+    total_issues: int
+    critical_count: int
+    warning_count: int
+    additions: int = 0
+    deletions: int = 0
+
+class GitHubPRReviewResponse(BaseModel):
+    success: bool
+    message: str
+    pr_url: str
+    repository: str
+    branch: str
+    files_reviewed: int
+    overall_summary: str
+    total_issues: int
+    critical_count: int
+    warning_count: int
+    overall_score: int
+    review_results: List[ReviewRule]
+    file_reviews: List[FileReview]
+    positive_aspects: List[str] = []
+    recommendations: List[str] = []
 
 class RuleUploadRequest(BaseModel):
     rules_text: str

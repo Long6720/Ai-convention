@@ -2,8 +2,7 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -11,23 +10,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { CodeEditor } from '@/components/ui/code-editor';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Upload,
-  Code,
-  GitPullRequest,
-  FileText,
-  Settings,
-  History,
-  Eye,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { aiCodeReviewService } from '@/services/api-service';
-import { CodeEditor } from '@/components/ui/code-editor';
+import {
+  Code,
+  Eye,
+  FileText,
+  GitPullRequest,
+  History,
+  Settings,
+  Upload,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function CodeReviewDashboard() {
   const [codeSnippet, setCodeSnippet] = useState('');
@@ -52,6 +51,7 @@ export default function CodeReviewDashboard() {
         '.c',
         '.go',
         '.rs',
+        '.md'
       ];
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
 
@@ -73,9 +73,11 @@ export default function CodeReviewDashboard() {
 
   const handleReview = async (type: 'snippet' | 'github' | 'file') => {
     setIsReviewing(true);
+    let result = null;
 
     try {
       const payload: any = { type };
+      let response: any = null;
 
       switch (type) {
         case 'snippet':
@@ -88,9 +90,18 @@ export default function CodeReviewDashboard() {
             return;
           }
           payload.code = codeSnippet;
+          response = await aiCodeReviewService.reviewCode({
+            code: codeSnippet,
+          });
+          ;
+    
+          if (!response.success) {
+            throw new Error("Review failed")
+          }
+    
           break;
 
-        case 'github':
+        case 'github': 
           if (!githubUrl.trim()) {
             toast({
               title: 'No GitHub URL provided',
@@ -100,6 +111,10 @@ export default function CodeReviewDashboard() {
             return;
           }
           payload.githubUrl = githubUrl;
+          response = await aiCodeReviewService.reviewGitHubPR({
+            pr_url: githubUrl,
+          });
+    
           break;
 
         case 'file':
@@ -118,16 +133,11 @@ export default function CodeReviewDashboard() {
           break;
       }
 
-      const response = await aiCodeReviewService.reviewCode({
-        code: codeSnippet,
-      });
-      console.log(response);
-
       if (!response.success) {
         throw new Error("Review failed")
       }
 
-      const result = response;
+      result = response;
 
       // // Store result in sessionStorage and navigate to results page
       sessionStorage.setItem("reviewResult", JSON.stringify(result))
@@ -166,167 +176,14 @@ export default function CodeReviewDashboard() {
                 <Settings className='h-4 w-4' />
                 Document Library
               </Button>
-              <Button
+              {/* <Button
                 variant='outline'
                 onClick={() => router.push('/history')}
                 className='flex items-center gap-2'
               >
                 <History className='h-4 w-4' />
                 Review History
-              </Button>
-              <Button
-                variant='outline'
-                onClick={() => {
-                  // Create a comprehensive demo result
-                  const demoResult = {
-                    id: 'demo-' + Date.now(),
-                    timestamp: new Date().toISOString(),
-                    type: 'snippet',
-                    filename: 'user-authentication.js',
-                    summary: {
-                      score: 72,
-                      totalIssues: 8,
-                      criticalIssues: 2,
-                      warnings: 4,
-                      suggestions: 2,
-                    },
-                    issues: [
-                      {
-                        type: 'critical' as const,
-                        title: 'SQL Injection Vulnerability',
-                        description:
-                          'Direct string concatenation in SQL query creates a potential SQL injection vulnerability. User input should always be parameterized.',
-                        line: 23,
-                        code: `const query = "SELECT * FROM users WHERE email = '" + userEmail + "' AND password = '" + password + "'";`,
-                        suggestion: `const query = "SELECT * FROM users WHERE email = ? AND password = ?";
-db.query(query, [userEmail, hashedPassword]);`,
-                        rule: 'SQL Injection Prevention',
-                      },
-                      {
-                        type: 'critical' as const,
-                        title: 'Password Stored in Plain Text',
-                        description:
-                          'Passwords should never be stored or compared in plain text. Use proper hashing algorithms like bcrypt.',
-                        line: 31,
-                        code: `if (user.password === password) {
-  return { success: true, user };
-}`,
-                        suggestion: `const isValidPassword = await bcrypt.compare(password, user.hashedPassword);
-if (isValidPassword) {
-  return { success: true, user };
-}`,
-                        rule: 'Security Best Practices',
-                      },
-                      {
-                        type: 'warning' as const,
-                        title: 'Missing Error Handling',
-                        description:
-                          'Database operations should be wrapped in try-catch blocks to handle potential errors gracefully.',
-                        line: 18,
-                        code: `const result = await db.query(query);
-return result.rows[0];`,
-                        suggestion: `try {
-  const result = await db.query(query);
-  return result.rows[0];
-} catch (error) {
-  console.error('Database error:', error);
-  throw new Error('Authentication failed');
-}`,
-                        rule: 'Error Handling',
-                      },
-                      {
-                        type: 'warning' as const,
-                        title: 'Console.log in Production Code',
-                        description:
-                          'Console.log statements should be removed from production code or replaced with proper logging.',
-                        line: 12,
-                        code: `console.log('User login attempt:', userEmail);`,
-                        suggestion: `logger.info('User login attempt', { email: userEmail });`,
-                        rule: 'No console.log in production',
-                      },
-                      {
-                        type: 'warning' as const,
-                        title: 'Hardcoded Configuration',
-                        description:
-                          'Database connection string should be stored in environment variables, not hardcoded.',
-                        line: 5,
-                        code: `const dbUrl = 'postgresql://user:pass@localhost:5432/mydb';`,
-                        suggestion: `const dbUrl = process.env.DATABASE_URL;`,
-                        rule: 'Configuration Management',
-                      },
-                      {
-                        type: 'warning' as const,
-                        title: 'Missing Input Validation',
-                        description:
-                          'User inputs should be validated before processing to prevent malicious data.',
-                        line: 15,
-                        code: `function authenticateUser(userEmail, password) {`,
-                        suggestion: `function authenticateUser(userEmail, password) {
-  if (!userEmail || !password) {
-    throw new Error('Email and password are required');
-  }
-  if (!isValidEmail(userEmail)) {
-    throw new Error('Invalid email format');
-  }`,
-                        rule: 'Input Validation',
-                      },
-                      {
-                        type: 'suggestion' as const,
-                        title: 'Consider Rate Limiting',
-                        description:
-                          'Authentication endpoints should implement rate limiting to prevent brute force attacks.',
-                        suggestion:
-                          'Implement rate limiting middleware to restrict login attempts per IP address.',
-                        rule: 'Security Enhancement',
-                      },
-                      {
-                        type: 'suggestion' as const,
-                        title: 'Add JSDoc Comments',
-                        description:
-                          'Functions should have proper documentation describing parameters, return values, and behavior.',
-                        line: 15,
-                        code: `function authenticateUser(userEmail, password) {`,
-                        suggestion: `/**
- * Authenticates a user with email and password
- * @param {string} userEmail - User's email address
- * @param {string} password - User's password
- * @returns {Promise<Object>} Authentication result with user data
- */
-function authenticateUser(userEmail, password) {`,
-                        rule: 'Documentation Standards',
-                      },
-                    ],
-                    positives: [
-                      'Good use of async/await for database operations',
-                      'Function names are descriptive and follow camelCase convention',
-                      'Code structure is readable and well-organized',
-                      'Proper separation of concerns between authentication logic',
-                      'Uses modern JavaScript ES6+ features appropriately',
-                    ],
-                    recommendations: [
-                      'Implement proper password hashing using bcrypt or similar library',
-                      'Add comprehensive input validation and sanitization',
-                      'Set up proper error handling and logging throughout the application',
-                      'Use environment variables for all configuration values',
-                      'Consider implementing JWT tokens for session management',
-                      'Add unit tests for authentication functions',
-                      'Implement rate limiting and account lockout mechanisms',
-                      'Use a proper ORM or query builder to prevent SQL injection',
-                      'Add monitoring and alerting for failed authentication attempts',
-                    ],
-                  };
-
-                  sessionStorage.setItem(
-                    'reviewResult',
-                    JSON.stringify(demoResult)
-                  );
-                  router.push('/results');
-                }}
-                className='flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700'
-              >
-                <Eye className='h-4 w-4' />
-                View Demo Results
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -344,7 +201,7 @@ function authenticateUser(userEmail, password) {`,
           </CardHeader>
           <CardContent>
             <Tabs defaultValue='snippet' className='w-full'>
-              <TabsList className='grid w-full grid-cols-3'>
+              <TabsList className='grid w-full grid-cols-2'>
                 <TabsTrigger
                   value='snippet'
                   className='flex items-center gap-2'
@@ -356,10 +213,10 @@ function authenticateUser(userEmail, password) {`,
                   <GitPullRequest className='h-4 w-4' />
                   GitHub PR
                 </TabsTrigger>
-                <TabsTrigger value='file' className='flex items-center gap-2'>
+                {/* <TabsTrigger value='file' className='flex items-center gap-2'>
                   <Upload className='h-4 w-4' />
                   File Upload
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value='snippet' className='space-y-4'>

@@ -2,16 +2,23 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
-from typing import Optional
+from typing import Optional, List
 import json
 
 from models import (
     CodeReviewRequest, 
     GitHubPRRequest, 
     RuleUploadRequest,
-    CodeReviewResponse
+    CodeReviewResponse,
+    GitHubPRReviewResponse
 )
 from services.main_service import MainService
+
+# Create request body model for bulk delete
+from pydantic import BaseModel
+
+class BulkDeleteRequest(BaseModel):
+    rule_ids: List[str]
 
 app = FastAPI(
     title="AI Code Review Agent",
@@ -108,6 +115,18 @@ async def get_rules():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving rules: {str(e)}")
 
+@app.get("/api/rules/{rule_name}")
+async def get_rule_by_name(rule_name: str):
+    """Get a single rule by name with combined content"""
+    try:
+        result = main_service.get_rule_by_name(rule_name)
+        if result["success"]:
+            return JSONResponse(content=result, status_code=200)
+        else:
+            return JSONResponse(content=result, status_code=404)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving rule: {str(e)}")
+
 @app.get("/api/rules/search")
 async def search_rules(query: str, n_results: int = 10):
     """Search for specific rules"""
@@ -125,6 +144,18 @@ async def clear_rules():
         return JSONResponse(content=result, status_code=200)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error clearing rules: {str(e)}")
+
+@app.delete("/api/rules/bulk")
+async def delete_rules_by_ids(request: BulkDeleteRequest):
+    """Delete multiple rules by their IDs"""
+    try:
+        result = main_service.delete_rules_by_ids(request.rule_ids)
+        if result["success"]:
+            return JSONResponse(content=result, status_code=200)
+        else:
+            return JSONResponse(content=result, status_code=400)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting rules: {str(e)}")
 
 @app.post("/api/analysis/security")
 async def analyze_security(
@@ -183,17 +214,13 @@ async def review_code(request: CodeReviewRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during code review: {str(e)}")
 
-@app.post("/api/review/github-pr")
+@app.post("/api/review/github-pr", response_model=GitHubPRReviewResponse)
 async def review_github_pr(request: GitHubPRRequest):
     """Review code from a GitHub PR"""
     try:
         result = main_service.review_github_pr(request)
+        return result
         
-        if result["success"]:
-            return JSONResponse(content=result, status_code=200)
-        else:
-            return JSONResponse(content=result, status_code=400)
-            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during GitHub PR review: {str(e)}")
 

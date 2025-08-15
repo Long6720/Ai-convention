@@ -191,10 +191,10 @@ export default function ReviewResults() {
               </div>
             </div>
             <div className='flex gap-2'>
-              <Button variant='outline' onClick={exportReport}>
+              {/* <Button variant='outline' onClick={exportReport}>
                 <Download className='h-4 w-4 mr-2' />
                 Export Report
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -281,7 +281,7 @@ export default function ReviewResults() {
                       <div className='flex items-start justify-between'>
                         <div className='flex items-center gap-2'>
                           {getIssueIcon(issue.type)}
-                          <h3 className='font-semibold'>{issue.title}</h3>
+                          {/* <h3 className='font-semibold'>{issue.title}</h3> */}
                           <Badge variant={getIssueColor(issue.type) as any}>
                             {issue.type}
                           </Badge>
@@ -414,13 +414,13 @@ export default function ReviewResults() {
                 >
                   Manage Documents
                 </Button>
-                <Button
+                {/* <Button
                   variant='outline'
                   className='w-full justify-start bg-transparent'
                   onClick={() => router.push('/history')}
                 >
                   View History
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           </div>

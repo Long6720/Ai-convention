@@ -54,7 +54,16 @@ const result = await aiCodeReviewService.reviewCode({
 });
 
 // Get rules
-const rules = await aiCodeReviewService.getRules('python');
+const rules = await aiCodeReviewService.getRules('javascript');
+
+// Get specific rule by name with combined content
+const specificRule = await aiCodeReviewService.getRuleByName('Python Best Practices');
+
+// Delete rule by ID
+const deleteResult = await aiCodeReviewService.deleteRuleById('rule_123');
+
+// Delete rules by name
+const deleteByNameResult = await aiCodeReviewService.deleteRulesByName('Python Best Practices');
 ```
 
 ### 3. Sử dụng các function riêng lẻ
@@ -71,6 +80,15 @@ const result = await reviewCode({
 
 // Get rules
 const rules = await getRules('javascript');
+
+// Get specific rule by name with combined content
+const specificRule = await getRuleByName('Python Best Practices');
+
+// Delete rule by ID
+const deleteResult = await deleteRuleById('rule_123');
+
+// Delete rules by name
+const deleteByNameResult = await deleteRulesByName('Python Best Practices');
 ```
 
 ## Các API endpoints
@@ -84,9 +102,13 @@ const rules = await getRules('javascript');
 - **POST** `/review/upload` - Review uploaded file
 
 ### Rules Management
-- **GET** `/rules` - Lấy danh sách rules
+- **GET** `/rules` - Lấy danh sách rules với nội dung đã kết hợp
+- **GET** `/rules/{rule_name}` - Lấy rule cụ thể theo tên với nội dung đã kết hợp
 - **GET** `/rules/statistics` - Lấy thống kê rules
 - **POST** `/rules/upload` - Upload custom rule
+- **DELETE** `/rules` - Xóa tất cả rules
+- **DELETE** `/rules/{rule_id}` - Xóa rule theo ID
+- **DELETE** `/rules/name/{rule_name}` - Xóa tất cả chunks của rule theo tên
 
 ### Utilities
 - **GET** `/languages` - Lấy danh sách ngôn ngữ được hỗ trợ

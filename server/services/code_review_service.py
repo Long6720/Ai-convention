@@ -68,6 +68,7 @@ class CodeReviewService:
         try:
             # Use AI to detect language
             prompt = self.prompts["language_detection"].format(code=code)
+            
             response = self.llm.invoke([HumanMessage(content=prompt)])
             detected_language = response.content.strip()
             
@@ -75,44 +76,78 @@ class CodeReviewService:
             if not detected_language or detected_language.lower() == "unknown":
                 detected_language = self._fallback_language_detection(code)
             
+            # Normalize language name for consistency
+            detected_language = self._normalize_language_name(detected_language)
+            
             state["language"] = detected_language
             state["current_step"] = "language_detected"
             
         except Exception as e:
-            print(f"Error in AI language detection: {e}")
             # Fallback to pattern-based detection
             detected_language = self._fallback_language_detection(code)
+            detected_language = self._normalize_language_name(detected_language)
             state["language"] = detected_language
             state["current_step"] = "language_detected"
         
         return state
+    
+    def _normalize_language_name(self, language: str) -> str:
+        """Normalize language names for consistency"""
+        language = language.strip()
+        
+        # Common variations
+        language_mapping = {
+            "typescript": "TypeScript",
+            "ts": "TypeScript",
+            "javascript": "JavaScript",
+            "js": "JavaScript",
+            "python": "Python",
+            "py": "Python",
+            "java": "Java",
+            "cpp": "C++",
+            "c++": "C++",
+            "c#": "C#",
+            "csharp": "C#",
+            "c": "C"
+        }
+        
+        normalized = language_mapping.get(language.lower(), language)
+        return normalized
     
     def _fallback_language_detection(self, code: str) -> str:
         """Fallback language detection using pattern matching"""
         language_patterns = {
             "Python": [
                 r"def\s+\w+\s*\(", r"import\s+\w+", r"from\s+\w+\s+import",
-                r"class\s+\w+", r"if\s+__name__\s*==\s*['\"]__main__['\"]"
+                r"class\s+\w+", r"if\s+__name__\s*==\s*['\"]__main__['\"]",
+                r"print\s*\(", r"return\s+", r"elif\s+", r"else\s*:"
             ],
             "JavaScript": [
                 r"function\s+\w+\s*\(", r"const\s+\w+", r"let\s+\w+", r"var\s+\w+",
-                r"console\.log", r"export\s+", r"import\s+"
+                r"console\.log", r"export\s+", r"import\s+", r"=>\s*{",
+                r"\.forEach\s*\(", r"\.map\s*\(", r"\.filter\s*\("
             ],
             "TypeScript": [
                 r"interface\s+\w+", r"type\s+\w+", r":\s*\w+", r"<T>",
-                r"function\s+\w+<", r"const\s+\w+:\s*\w+"
+                r"function\s+\w+<", r"const\s+\w+:\s*\w+", r"Partial<\w+>",
+                r"Array<\w+>", r"Promise<\w+>", r"enum\s+\w+", r"extends\s+\w+",
+                r"implements\s+\w+", r"public\s+", r"private\s+", r"protected\s+",
+                r"abstract\s+class", r"namespace\s+\w+", r"declare\s+"
             ],
             "Java": [
                 r"public\s+class\s+\w+", r"public\s+static\s+void\s+main",
-                r"import\s+java\.", r"System\.out\.println"
+                r"import\s+java\.", r"System\.out\.println", r"private\s+\w+",
+                r"protected\s+\w+", r"final\s+\w+", r"throws\s+\w+"
             ],
             "C++": [
                 r"#include\s*<", r"using\s+namespace\s+std", r"std::",
-                r"int\s+main\s*\(", r"cout\s*<<"
+                r"int\s+main\s*\(", r"cout\s*<<", r"cin\s*>>", r"vector<\w+>",
+                r"template\s*<", r"class\s+\w+\s*{", r"public:", r"private:"
             ],
             "C#": [
                 r"using\s+System", r"namespace\s+\w+", r"public\s+class\s+\w+",
-                r"Console\.WriteLine", r"var\s+\w+"
+                r"Console\.WriteLine", r"var\s+\w+", r"string\s+\w+", r"int\s+\w+",
+                r"List<\w+>", r"Dictionary<\w+,\w+>", r"async\s+Task"
             ]
         }
         
@@ -137,24 +172,37 @@ class CodeReviewService:
         if language != "Unknown":
             query += f" {language} best practices coding standards"
         
-        # Search in ChromaDB
-        relevant_rules = self.chroma_service.search_rules(query, n_results=10)
+        try:
+            # Search in ChromaDB
+            relevant_rules = self.chroma_service.search_rules(query, n_results=10)
+            
+            # Also search for general coding rules
+            general_query = "general coding standards best practices"
+            general_rules = self.chroma_service.search_rules(general_query, n_results=5)
+            
+            # Combine and deduplicate
+            all_rules = relevant_rules + general_rules
+            unique_rules = []
+            seen_contents = set()
+            
+            for rule in all_rules:
+                # Use 'content' instead of 'document' for the new combined format
+                rule_content = rule.get('content', '')
+                rule_name = rule.get('rule_name', 'Unknown')
+                
+                if rule_content and rule_content not in seen_contents:
+                    unique_rules.append(rule)
+                    seen_contents.add(rule_content)
+                else:
+                    pass # No debug print for skipping duplicates
+            
+            state["rules"] = unique_rules[:10]  # Limit to top 10
+            state["current_step"] = "rules_found"
+            
+        except Exception as e:
+            state["rules"] = []
+            state["current_step"] = "rules_error"
         
-        # Also search for general coding rules
-        general_rules = self.chroma_service.search_rules("general coding standards best practices", n_results=5)
-        
-        # Combine and deduplicate
-        all_rules = relevant_rules + general_rules
-        unique_rules = []
-        seen_docs = set()
-        
-        for rule in all_rules:
-            if rule['document'] not in seen_docs:
-                unique_rules.append(rule)
-                seen_docs.add(rule['document'])
-        
-        state["rules"] = unique_rules[:10]  # Limit to top 10
-        state["current_step"] = "rules_found"
         return state
     
     def _analyze_code(self, state: CodeReviewState) -> CodeReviewState:
@@ -163,10 +211,10 @@ class CodeReviewService:
         language = state["language"]
         rules = state["rules"]
         
-        # Prepare context for LLM
-        rules_text = "\n\n".join([rule['document'] for rule in rules])
-        
         try:
+            # Prepare context for LLM - use 'content' instead of 'document'
+            rules_text = "\n\n".join([rule.get('content', '') for rule in rules])
+            
             # Use PromptTemplate for code review
             prompt = self.prompts["code_review"].format(
                 language=language,
@@ -181,13 +229,18 @@ class CodeReviewService:
             
             state["review_results"] = review_data.get("issues", [])
             state["positive_aspects"] = review_data.get("good_points", [])
-            state["overall_score"] = review_data.get("overall_score", [])
+            # Ensure overall_score is a number, not a list
+            overall_score = review_data.get("overall_score", 0)
+            if isinstance(overall_score, list):
+                overall_score = overall_score[0] if overall_score else 0
+            elif not isinstance(overall_score, (int, float)):
+                overall_score = 0
+            state["overall_score"] = overall_score
             state["recommendations"] = review_data.get("recommendations", [])
             state["overall_assessment"] = review_data.get("overall_assessment", {})
             state["current_step"] = "analysis_complete"
             
         except Exception as e:
-            print(f"Error in code analysis: {e}")
             state["review_results"] = []
             state["current_step"] = "analysis_error"
         
@@ -220,7 +273,6 @@ class CodeReviewService:
                 summary = self._fallback_summary_generation(language, total_issues, critical_count, warning_count)
                 
         except Exception as e:
-            print(f"Error in AI summary generation: {e}")
             # Fallback to template-based summary
             summary = self._fallback_summary_generation(language, total_issues, critical_count, warning_count)
         
@@ -249,25 +301,18 @@ class CodeReviewService:
     
     def _parse_llm_response(self, response: str) -> Dict[str, Any]:
         """Parse the LLM response to extract structured data"""
-        print(f"🔍 Parsing LLM response: {response[:200]}...")
         
         try:
             # Try to find JSON in the response
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
-                print(f"📋 Found JSON: {json_str}")
                 parsed = json.loads(json_str)
-                print(f"✅ Successfully parsed JSON with {len(parsed.get('issues', []))} issues")
-                print(f"📈 Good points: {len(parsed.get('good_points', []))}")
-                print(f"💡 Recommendations: {len(parsed.get('recommendations', []))}")
                 return parsed
         except json.JSONDecodeError as e:
-            print(f"❌ JSON parsing failed: {e}")
             pass
         
         # Fallback: try to extract information manually
-        print("🔄 Using fallback parsing...")
         issues = []
         lines = response.split('\n')
         current_issue = {}
@@ -318,7 +363,6 @@ class CodeReviewService:
         if current_issue:
             issues.append(current_issue)
         
-        print(f"📊 Fallback parsing found {len(issues)} issues")
         return {
             "issues": issues,
             "good_points": [],

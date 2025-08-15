@@ -34,10 +34,11 @@ def check_environment():
 def check_dependencies():
     """Check if required packages are installed"""
     try:
-        import langgraph
-        import langchain
-        import chromadb
         import fastapi
+        import uvicorn
+        import langchain
+        import langgraph
+        import chromadb
         print("✅ All required packages are installed")
         return True
     except ImportError as e:
@@ -62,7 +63,8 @@ def main():
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
     reload = os.getenv("RELOAD", "true").lower() == "true"
-    log_level = os.getenv("LOG_LEVEL", "info")
+    # Set log level based on environment
+    log_level = os.getenv("LOG_LEVEL", "info").lower()
     
     print(f"🚀 Starting server on {host}:{port}")
     print(f"📝 Log level: {log_level}")
@@ -76,8 +78,7 @@ def main():
             host=host,
             port=port,
             reload=reload,
-            log_level=log_level,
-            access_log=True
+            log_level=log_level
         )
     except KeyboardInterrupt:
         print("\n🛑 Server stopped by user")

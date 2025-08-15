@@ -1,11 +1,12 @@
 import requests
 import base64
 from typing import Dict, List, Optional
+from config import Config
 import re
 
 class GitHubService:
     def __init__(self, token: Optional[str] = None):
-        self.token = token
+        self.token = Config.GITHUB_TOKEN
         self.base_url = "https://api.github.com"
         self.headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -17,10 +18,13 @@ class GitHubService:
     def extract_pr_info(self, pr_url: str) -> Optional[Dict]:
         """Extract repository and PR number from GitHub PR URL"""
         pattern = r"github\.com/([^/]+)/([^/]+)/pull/(\d+)"
-        match = re.match(pattern, pr_url)
         
+        print(f"URL: {pr_url}")
+        match = re.search(pattern, pr_url)
+        print(f"Pattern match: {match}")
         if match:
             owner, repo, pr_number = match.groups()
+            print(f"Extracted: owner={owner}, repo={repo}, pr_number={pr_number}")
             return {
                 "owner": owner,
                 "repo": repo,
